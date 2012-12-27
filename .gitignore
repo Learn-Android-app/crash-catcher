@@ -1,9 +1,0 @@
-.project
-bin/*
-gen/*
-target/*
-.settings/*
-obj/*
-project.properties
-.cproject
-*.orig
