@@ -1,0 +1,8 @@
+.project
+bin/*
+gen/*
+.settings/*
+obj/*
+project.properties
+.cproject
+*.orig
