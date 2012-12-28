@@ -55,7 +55,7 @@ public class CrashCatcherActivity extends Activity {
 			@Override
 			public void uncaughtException(Thread paramThread, final Throwable e) {
 				Log.e(TAG, "Error: " + getStackTrace(e));
-				Intent crashedIntent = new Intent(CrashCatcherActivity.this, CrashCatcherActivity.class);
+				Intent crashedIntent = new Intent(CrashCatcherActivity.this, getStartActivityAfterCrached());
 				crashedIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
 				crashedIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 				crashedIntent.putExtra(TRACE_INFO, getStackTrace(e));
@@ -86,7 +86,7 @@ public class CrashCatcherActivity extends Activity {
 			Intent i = new Intent(android.content.Intent.ACTION_SEND_MULTIPLE);
 			i.setType("message/rfc822");
 			i.putExtra(Intent.EXTRA_EMAIL, new String[] { getRecipient() });
-			i.putExtra(Intent.EXTRA_SUBJECT, getSubject());
+			i.putExtra(Intent.EXTRA_SUBJECT, getFinalSubject());
 
 			ArrayList<Uri> uris = new ArrayList<Uri>();
 			ArrayList<String> filePaths = new ArrayList<String>();
@@ -225,18 +225,22 @@ public class CrashCatcherActivity extends Activity {
 		return sw.toString();
 	}
 
-	protected String getSubject() {
+	private String getFinalSubject() {
 
 		try {
 			String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-			return DEFAULT_SUBJECT + " Version: " + versionName;
+			return getSubject() + " Version: " + versionName;
 		} catch (Exception e) {
-			return DEFAULT_SUBJECT + " Version: not found";
+			return getSubject() + " Version: not found";
 		}
 	}
 
     protected String getPathResult() {
 	    return PATH_TO_RESULT;
+	}
+
+    protected String getSubject() {
+	    return getPackageName();
 	}
 
     protected String getPathLog() {
@@ -250,6 +254,10 @@ public class CrashCatcherActivity extends Activity {
 	protected String getRecipient() {
 		return DEFAULT_EMAIL_FROM;
 	}
+
+    protected Class<?> getStartActivityAfterCrached() {
+        return CrashCatcherActivity.class;
+    }
 
 	private void createDir(String puth) {
 		File tessdata = new File(puth);
