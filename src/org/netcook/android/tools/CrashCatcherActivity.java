@@ -32,7 +32,7 @@ import android.os.Environment;
  * 
  */
 
-abstract public class CrashCatcherActivity extends Activity {
+public class CrashCatcherActivity extends Activity {
 	private static final String TAG = "CrashCatcherActivity";
 	public static final String TRACE_INFO = "TRACE_INFO";
 	public static final String HAS_CRASHED = "HAS_CRASHED";
