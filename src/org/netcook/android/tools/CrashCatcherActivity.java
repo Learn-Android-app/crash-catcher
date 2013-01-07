@@ -11,14 +11,16 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 
+import org.netcook.android.sysinfo.SystemInfoBuilder;
+
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.os.Environment;
+import android.util.Log;
 /**
  * The Simple crash catcher activity for automatic send email report.
  * 
@@ -37,7 +39,7 @@ public class CrashCatcherActivity extends Activity {
 	public static final String TRACE_INFO = "TRACE_INFO";
 	public static final String HAS_CRASHED = "HAS_CRASHED";
 	
-	private static String DEFAULT_BODY = "";
+	private StringBuilder defaultBody = new StringBuilder("");
 	
 	private static final String DEFAULT_EMAIL_FROM = "example@example.com";
 	private static final String DEFAULT_SUBJECT = "Crash report";
@@ -113,8 +115,10 @@ public class CrashCatcherActivity extends Activity {
 			}
 
 			try {
-				DEFAULT_BODY += " Error: " + getIntent().getStringExtra(TRACE_INFO);
-				i.putExtra(Intent.EXTRA_TEXT, DEFAULT_BODY);
+				defaultBody
+					.append(" Error: ")
+					.append(getIntent().getStringExtra(TRACE_INFO));
+				i.putExtra(Intent.EXTRA_TEXT, defaultBody.toString());
 				startActivity(Intent.createChooser(i, "Send crash log..."));
 			} catch (ActivityNotFoundException ex) {
 				Log.e(TAG, "Error", ex);
@@ -127,7 +131,7 @@ public class CrashCatcherActivity extends Activity {
 	private void captureLog() {
 		Process LogcatProc = null;
 		BufferedReader reader = null;
-		ArrayList<String> log = new ArrayList<String>();
+		StringBuilder log = new StringBuilder();
 		createDir(getPathDirLog());
 
 		try {
@@ -139,80 +143,32 @@ public class CrashCatcherActivity extends Activity {
 			long time = System.currentTimeMillis();
 			Log.d(TAG, System.currentTimeMillis() + "");
 			while ((line = reader.readLine()) != null) {
-				log.add(line);
+				log.append(line).append(System.getProperty("line.separator"));
 			}
 			Log.d(TAG, (System.currentTimeMillis() - time) + "");
-			log.add("--SYSTEM--");
-			log.add("BOARD:");
-			log.add(android.os.Build.BOARD);
-			log.add("BOOTLOADER:");
-			log.add(android.os.Build.BOOTLOADER);
-			log.add("BRAND:");
-			log.add(android.os.Build.BRAND);
-			log.add("CPU_ABI:");
-			log.add(android.os.Build.CPU_ABI);
-			log.add("CPU_ABI2");
-			log.add(android.os.Build.CPU_ABI2);
-			log.add("DEVICE:");
-			log.add(android.os.Build.DEVICE);
-			log.add("DISPLAY:");
-			log.add(android.os.Build.DISPLAY);
-			log.add("FINGERPRINT:");
-			log.add(android.os.Build.FINGERPRINT);
-			log.add("HARDWARE:");
-			log.add(android.os.Build.HARDWARE);
-			log.add("HOST:");
-			log.add(android.os.Build.HOST);
-			log.add("ID:");
-			log.add(android.os.Build.ID);
-			log.add("MANUFACTURER:");
-			log.add(android.os.Build.MANUFACTURER);
-			log.add("MODEL:");
-			log.add(android.os.Build.MODEL);
-			log.add("PRODUCT:");
-			log.add(android.os.Build.PRODUCT);
-			log.add("RADIO:");
-			log.add(android.os.Build.RADIO);
-			log.add("SERIAL:");
-			log.add(android.os.Build.SERIAL);
-			log.add("TAGS:");
-			log.add(android.os.Build.TAGS);
-			log.add("TYPE:");
-			log.add(android.os.Build.TYPE);
-			log.add("UNKNOWN:");
-			log.add(android.os.Build.UNKNOWN);
-			log.add("USER:");
-			log.add(android.os.Build.USER);
-			log.add("TIME:");
-			log.add(String.valueOf(android.os.Build.TIME));
+			log.append(new SystemInfoBuilder().build());
 		} catch (IOException e) {
-			Log.d(TAG, e.toString());
+			Log.d(TAG, "get logcat failed", e);
 		} finally {
 			if (reader != null) {
-				try {
-					reader.close();
-				} catch (IOException e) {
-				}
+				try { reader.close(); } catch (IOException e) {}
 			}
 		}
 
 		saveLogToFile(log);
 	}
 
-	private void saveLogToFile(ArrayList<String> logString) {
+	private void saveLogToFile(StringBuilder builder) {
+		File outputFile = new File(getPathLog());
+		Writer writer = null;
 		try {
-			File outputFile = new File(getPathLog());
-			Writer writer = new BufferedWriter(new FileWriter(outputFile));
-
-			for (String str : logString) {
-				writer.write(str);
-				writer.write(System.getProperty("line.separator"));
-			}
-
-			writer.close();
+			writer = new BufferedWriter(new FileWriter(outputFile));
+			writer.write(builder.toString());
 		} catch (IOException e) {
-			Log.e(TAG, e.getMessage(), e);
-			DEFAULT_BODY = "Error writing file; ";
+			Log.e(TAG, "saveLogToFile failed", e);
+			defaultBody.append("Error writing file on device");
+		} finally {
+			try { writer.close(); } catch (IOException e) { }
 		}
 	}
 
