@@ -21,19 +21,19 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
+
 /**
  * The Simple crash catcher activity for automatic send email report.
  * 
  * <p>
  * For use it need registry this activity to manifest: <activity
- * android:name="org.netcook.android.tools.CrashCatcherActivity" > and override two methods
- * getSubject() and getRecipient()
+ * android:name="org.netcook.android.tools.CrashCatcherActivity" > and override method
+ * getRecipient()
  * </p>
  * 
  * @author Nikolay Moskvin <moskvin@netcook.org>
  * 
  */
-
 public class CrashCatcherActivity extends Activity {
 	private static final String TAG = "CrashCatcherActivity";
 	public static final String TRACE_INFO = "TRACE_INFO";
@@ -45,7 +45,7 @@ public class CrashCatcherActivity extends Activity {
 	private static final String DEFAULT_SUBJECT = "Crash report";
 
     public final static String STORAGE_DIRECTORY = Environment.getExternalStorageDirectory().toString();
-	public final static String SETTINGS_DIR_PROJECT = STORAGE_DIRECTORY + "/tesseract";
+	public final static String SETTINGS_DIR_PROJECT = STORAGE_DIRECTORY + "/.settings";
 	public final static String SETTINGS_DIR_LOG = STORAGE_DIRECTORY + "/.logcat";
 	public final static String PATH_TO_LOG = SETTINGS_DIR_LOG + "/logcat.txt";
 	public final static String PATH_TO_RESULT = SETTINGS_DIR_PROJECT + "/result.jpg";
@@ -93,13 +93,13 @@ public class CrashCatcherActivity extends Activity {
 			ArrayList<Uri> uris = new ArrayList<Uri>();
 			ArrayList<String> filePaths = new ArrayList<String>();
 
-			File file = new File(getPathResult());
-			if (file.exists()) {
+			File resultFile = new File(getPathResult());
+			if (resultFile.exists()) {
 				filePaths.add(getPathResult());
 			}
 
-			File file2 = new File(getPathLog());
-			if (file2.exists()) {
+			File logCatFile = new File(getPathLog());
+			if (logCatFile.exists()) {
 				filePaths.add(getPathLog());
 			}
 
@@ -132,7 +132,8 @@ public class CrashCatcherActivity extends Activity {
 		Process LogcatProc = null;
 		BufferedReader reader = null;
 		StringBuilder log = new StringBuilder();
-		createDir(getPathDirLog());
+
+		initFolder();
 
 		try {
 			LogcatProc = Runtime.getRuntime().exec(new String[] { "logcat", "-d" });
@@ -160,6 +161,9 @@ public class CrashCatcherActivity extends Activity {
 
 	private void saveLogToFile(StringBuilder builder) {
 		File outputFile = new File(getPathLog());
+		if (outputFile.exists()) {
+			outputFile.delete();
+		}
 		Writer writer = null;
 		try {
 			writer = new BufferedWriter(new FileWriter(outputFile));
@@ -168,7 +172,7 @@ public class CrashCatcherActivity extends Activity {
 			Log.e(TAG, "saveLogToFile failed", e);
 			defaultBody.append("Error writing file on device");
 		} finally {
-			try { writer.close(); } catch (IOException e) { }
+			try { writer.close(); } catch (Exception e) { }
 		}
 	}
 
@@ -182,28 +186,27 @@ public class CrashCatcherActivity extends Activity {
 	}
 
 	private String getFinalSubject() {
-
 		try {
 			String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-			return getSubject() + " Version: " + versionName;
+			return "[" + getSubject() + " v" + versionName + "] " + DEFAULT_SUBJECT;
 		} catch (Exception e) {
-			return getSubject() + " Version: not found";
+			return "[" + getSubject() + " NO VERSION] " + DEFAULT_SUBJECT;
 		}
 	}
 
-    protected String getPathResult() {
-	    return PATH_TO_RESULT;
+	protected String getPathResult() {
+		return PATH_TO_RESULT;
 	}
 
-    protected String getSubject() {
-	    return getPackageName();
+	protected String getSubject() {
+		return getPackageName();
 	}
 
-    protected String getPathLog() {
-	    return PATH_TO_LOG;
+	protected String getPathLog() {
+		return PATH_TO_LOG;
 	}
 
-    protected String getPathDirLog() {
+	protected String getPathDirLog() {
 		return SETTINGS_DIR_LOG;
 	}
 
@@ -211,14 +214,14 @@ public class CrashCatcherActivity extends Activity {
 		return DEFAULT_EMAIL_FROM;
 	}
 
-    protected Class<?> getStartActivityAfterCrached() {
-        return CrashCatcherActivity.class;
-    }
+	protected Class<?> getStartActivityAfterCrached() {
+		return CrashCatcherActivity.class;
+	}
 
-	private void createDir(String puth) {
-		File tessdata = new File(puth);
-		if (!tessdata.exists()) {
-			tessdata.mkdirs();
+	private void initFolder() {
+		File tempDir = new File(getPathDirLog());
+		if (!tempDir.exists()) {
+			tempDir.mkdirs();
 		}
 	}
 }
