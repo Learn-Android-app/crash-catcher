@@ -6,8 +6,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 
@@ -34,10 +32,8 @@ import android.util.Log;
  * @author Nikolay Moskvin <moskvin@netcook.org>
  * 
  */
-public class CrashCatcherActivity extends Activity {
+public class CrashCatcherActivity extends Activity implements CrashCatchable {
 	private static final String TAG = "CrashCatcherActivity";
-	public static final String TRACE_INFO = "TRACE_INFO";
-	public static final String HAS_CRASHED = "HAS_CRASHED";
 	
 	private StringBuilder defaultBody = new StringBuilder("");
 	
@@ -56,11 +52,12 @@ public class CrashCatcherActivity extends Activity {
  		Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
 			@Override
 			public void uncaughtException(Thread paramThread, final Throwable e) {
-				Log.e(TAG, "Error: " + getStackTrace(e));
+				final String stackTrace = StackTraceHelper.getStackTrace(e);
+				Log.e(TAG, "Error: " + stackTrace);
 				Intent crashedIntent = new Intent(CrashCatcherActivity.this, getStartActivityAfterCrached());
 				crashedIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
 				crashedIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-				crashedIntent.putExtra(TRACE_INFO, getStackTrace(e));
+				crashedIntent.putExtra(TRACE_INFO, stackTrace);
 				crashedIntent.putExtra(HAS_CRASHED, true);
 				startActivity(crashedIntent);
 				System.exit(0);
@@ -176,14 +173,7 @@ public class CrashCatcherActivity extends Activity {
 		}
 	}
 
-	private String getStackTrace(Throwable t) {
-		StringWriter sw = new StringWriter();
-		PrintWriter pw = new PrintWriter(sw, true);
-		t.printStackTrace(pw);
-		pw.flush();
-		sw.flush();
-		return sw.toString();
-	}
+
 
 	private String getFinalSubject() {
 		try {
