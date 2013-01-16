@@ -20,6 +20,10 @@ Add to your pom.xml following:
 			<version>1.0.3</version>
 		</dependency>
 
+Add the permission in AndroidManifest.xml file:
+	
+		<uses-permission android:name="android.permission.READ_LOGS" />
+
 Add to your base activity CrashCatcherActivity as parent:
 
     public class BaseActivity extends CrashCatcherActivity {
