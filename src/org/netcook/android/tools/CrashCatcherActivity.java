@@ -14,6 +14,7 @@ import org.netcook.android.sysinfo.SystemInfoBuilder;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -152,7 +153,12 @@ public class CrashCatcherActivity extends Activity implements CrashCatchable {
 				try { reader.close(); } catch (IOException e) {}
 			}
 		}
-
+		
+		if (getBaseContext().checkCallingOrSelfPermission("android.permission.READ_LOGS") 
+				!= PackageManager.PERMISSION_GRANTED) {
+			defaultBody.append("READ_LOGS access denied ");
+		}
+		
 		saveLogToFile(log);
 	}
 
@@ -165,9 +171,11 @@ public class CrashCatcherActivity extends Activity implements CrashCatchable {
 		try {
 			writer = new BufferedWriter(new FileWriter(outputFile));
 			writer.write(builder.toString());
+			
 		} catch (IOException e) {
 			Log.e(TAG, "saveLogToFile failed", e);
 			defaultBody.append("Error writing file on device");
+			
 		} finally {
 			try { writer.close(); } catch (Exception e) { }
 		}
