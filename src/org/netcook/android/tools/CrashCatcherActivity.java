@@ -129,17 +129,22 @@ public class CrashCatcherActivity extends Activity implements CrashCatchable {
 			try {
 				if (!isMonuallyMode) {
 					defaultBody
+						.append("\n")
 						.append(" Error: ")
 						.append(getIntent().getStringExtra(TRACE_INFO));
 				} else {
-					defaultBody.append("No error");
+					defaultBody
+					.append("\n")
+					.append("Note: Manually sending");
 				}
 				i.putExtra(Intent.EXTRA_TEXT, defaultBody.toString());
 				startActivity(Intent.createChooser(i, "Send crash log..."));
 			} catch (ActivityNotFoundException ex) {
 				Log.e(TAG, "Error", ex);
 			}
-			finish();
+			if (!isMonuallyMode) {
+				finish();
+			}
 		}
 	}
 
