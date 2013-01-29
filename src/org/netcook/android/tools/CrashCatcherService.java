@@ -36,4 +36,9 @@ public class CrashCatcherService extends Service implements CrashCatchable {
 	protected Class<?> getStartActivityAfterCrached() {
 		return CrashCatcherActivity.class;
 	}
+
+	@Override
+	public void onSendLog() {
+		throw new RuntimeException("Not implemented yet");
+	}
 }

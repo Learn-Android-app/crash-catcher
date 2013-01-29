@@ -66,12 +66,26 @@ public class CrashCatcherActivity extends Activity implements CrashCatchable {
 		});
 		if (getIntent().getBooleanExtra(HAS_CRASHED, false)) {
 			//setContentView(R.layout.crash_activity);
-			new CrashSend().execute();
+			new CrashSendTask().execute();
 		}
 		super.onCreate(savedInstanceState);
 	}
 
-	public class CrashSend extends AsyncTask<Void, Void, Void> {
+	@Override
+	public void onSendLog() {
+		new CrashSendTask(true).execute();
+	}
+
+	private class CrashSendTask extends AsyncTask<Void, Void, Void> {
+		private final boolean isMonuallyMode;
+	
+		public CrashSendTask() {
+			this(false);
+		}
+
+		public CrashSendTask(boolean isMonuallyMode) {
+			this.isMonuallyMode = isMonuallyMode;
+		}
 
 		@Override
 		protected Void doInBackground(Void... params) {
@@ -113,15 +127,18 @@ public class CrashCatcherActivity extends Activity implements CrashCatchable {
 			}
 
 			try {
-				defaultBody
-					.append(" Error: ")
-					.append(getIntent().getStringExtra(TRACE_INFO));
+				if (!isMonuallyMode) {
+					defaultBody
+						.append(" Error: ")
+						.append(getIntent().getStringExtra(TRACE_INFO));
+				} else {
+					defaultBody.append("No error");
+				}
 				i.putExtra(Intent.EXTRA_TEXT, defaultBody.toString());
 				startActivity(Intent.createChooser(i, "Send crash log..."));
 			} catch (ActivityNotFoundException ex) {
 				Log.e(TAG, "Error", ex);
 			}
-			super.onPostExecute(result);
 			finish();
 		}
 	}
@@ -180,8 +197,6 @@ public class CrashCatcherActivity extends Activity implements CrashCatchable {
 			try { writer.close(); } catch (Exception e) { }
 		}
 	}
-
-
 
 	private String getFinalSubject() {
 		try {
