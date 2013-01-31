@@ -11,7 +11,7 @@ import java.util.ArrayList;
 
 import org.netcook.android.sysinfo.SystemInfoBuilder;
 
-import android.app.Activity;
+import roboguice.activity.RoboActivity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -33,7 +33,7 @@ import android.util.Log;
  * @author Nikolay Moskvin <moskvin@netcook.org>
  * 
  */
-public class CrashCatcherActivity extends Activity implements CrashCatchable {
+public class CrashCatcherActivity extends RoboActivity implements CrashCatchable {
 	private static final String TAG = "CrashCatcherActivity";
 	
 	private StringBuilder defaultBody = new StringBuilder("");
