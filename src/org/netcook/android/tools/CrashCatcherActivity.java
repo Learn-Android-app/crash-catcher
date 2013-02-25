@@ -81,7 +81,6 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 			}
 		});
 		if (getIntent().getBooleanExtra(HAS_CRASHED, false)) {
-			//setContentView(R.layout.crash_activity);
 			new CrashSendTask().execute();
 		}
 		if (isEncryptContent()) {
@@ -95,84 +94,48 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 		new CrashSendTask(true).execute();
 	}
 
-	private class CrashSendTask extends AsyncTask<Void, Void, Boolean> {
-		private final boolean isMonuallyMode;
-		private StringBuilder defaultBody = new StringBuilder("");
+	protected String getPathResult() {
+		return PATH_TO_RESULT;
+	}
 
-		public CrashSendTask() {
-			this(false);
-		}
+	protected String getSubject() {
+		return DEFAULT_SUBJECT;
+	}
 
-		public CrashSendTask(boolean isMonuallyMode) {
-			this.isMonuallyMode = isMonuallyMode;
-		}
+	protected String getCrashSubject() {
+		return DEFAULT_CRASH_SUBJECT;
+	}
 
-		@Override
-		protected Boolean doInBackground(Void... params) {
-			try {
-				captureLog();
-			} catch (CrashCatcherError e) {
-				defaultBody.append(e.getMessage());
-				return false;
-			}
-			return true;
-		}
+	protected String getPathLog() {
+		return PATH_TO_LOG;
+	}
 
-		@Override
-		protected void onPostExecute(Boolean success) {
-			if (isCancelled()) {
-				return;
-			}
-			Intent i = new Intent(android.content.Intent.ACTION_SEND_MULTIPLE);
-			i.setType("message/rfc822");
-			i.putExtra(Intent.EXTRA_EMAIL, new String[] { getRecipient() });
-			i.putExtra(Intent.EXTRA_SUBJECT, getFinalSubject(isMonuallyMode));
+	protected String getPathDirLog() {
+		return SETTINGS_DIR_LOG;
+	}
 
-			ArrayList<Uri> uris = new ArrayList<Uri>();
-			ArrayList<String> filePaths = new ArrayList<String>();
+	protected String getRecipient() {
+		return DEFAULT_EMAIL_FROM;
+	}
 
-			File resultFile = new File(getPathResult());
-			if (resultFile.exists()) {
-				filePaths.add(getPathResult());
-			}
+	protected String getSalt() {
+		return DEFAULT_SALT;
+	}
 
-			File logCatFile = new File(getPathLog());
-			if (logCatFile.exists()) {
-				filePaths.add(getPathLog());
-			}
+	protected String getInitVector() {
+		return DEFAULT_INIT_VECTOR;
+	}
 
-			for (String files : filePaths) {
-				File fileIn = new File(files);
-				Uri u = Uri.fromFile(fileIn);
-				uris.add(u);
-			}
+	protected String getPassword() {
+		return DEFAULT_PASSWORD;
+	}
 
-			if (uris.size() > 0) {
-				Log.e(TAG, uris.size() + " ");
-				i.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
-			}
+	protected boolean isEncryptContent() {
+		return false;
+	}
 
-			try {
-				if (!isMonuallyMode) {
-					defaultBody
-						.append("\n")
-						.append(" Error: ")
-						.append(getIntent().getStringExtra(TRACE_INFO));
-				} else {
-					defaultBody
-					.append("\n")
-					.append("Note: Manually sending");
-				}
-				String extraText = defaultBody.toString();
-				i.putExtra(Intent.EXTRA_TEXT, extraText);
-				startActivity(Intent.createChooser(i, "Send report via:"));
-			} catch (ActivityNotFoundException ex) {
-				Log.e(TAG, "Error", ex);
-			}
-			if (!isMonuallyMode) {
-				finish();
-			}
-		}
+	protected Class<?> getStartActivityAfterCrached() {
+		return CrashCatcherActivity.class;
 	}
 
 	private void captureLog() {
@@ -234,54 +197,91 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 		}
 	}
 
-	protected String getPathResult() {
-		return PATH_TO_RESULT;
-	}
-
-	protected String getSubject() {
-		return DEFAULT_SUBJECT;
-	}
-
-	protected String getCrashSubject() {
-		return DEFAULT_CRASH_SUBJECT;
-	}
-
-	protected String getPathLog() {
-		return PATH_TO_LOG;
-	}
-
-	protected String getPathDirLog() {
-		return SETTINGS_DIR_LOG;
-	}
-
-	protected String getRecipient() {
-		return DEFAULT_EMAIL_FROM;
-	}
-
-	protected String getSalt() {
-		return DEFAULT_SALT;
-	}
-
-	protected String getInitVector() {
-		return DEFAULT_INIT_VECTOR;
-	}
-
-	protected String getPassword() {
-		return DEFAULT_PASSWORD;
-	}
-
-	protected boolean isEncryptContent() {
-		return false;
-	}
-
-	protected Class<?> getStartActivityAfterCrached() {
-		return CrashCatcherActivity.class;
-	}
-
 	private void initFolder() {
 		File tempDir = new File(getPathDirLog());
 		if (!tempDir.exists()) {
 			tempDir.mkdirs();
 		}
 	}
+
+	private class CrashSendTask extends AsyncTask<Void, Void, Boolean> {
+		private final boolean isMonuallyMode;
+		private StringBuilder defaultBody = new StringBuilder("");
+
+		public CrashSendTask() {
+			this(false);
+		}
+
+		public CrashSendTask(boolean isMonuallyMode) {
+			this.isMonuallyMode = isMonuallyMode;
+		}
+
+		@Override
+		protected Boolean doInBackground(Void... params) {
+			try {
+				captureLog();
+			} catch (CrashCatcherError e) {
+				defaultBody.append(e.getMessage());
+				return false;
+			}
+			return true;
+		}
+
+		@Override
+		protected void onPostExecute(Boolean success) {
+			if (isCancelled()) {
+				return;
+			}
+			Intent i = new Intent(android.content.Intent.ACTION_SEND_MULTIPLE);
+			i.setType("message/rfc822");
+			i.putExtra(Intent.EXTRA_EMAIL, new String[] { getRecipient() });
+			i.putExtra(Intent.EXTRA_SUBJECT, getFinalSubject(isMonuallyMode));
+
+			ArrayList<Uri> uris = new ArrayList<Uri>();
+			ArrayList<String> filePaths = new ArrayList<String>();
+
+			File resultFile = new File(getPathResult());
+			if (resultFile.exists()) {
+				filePaths.add(getPathResult());
+			}
+
+			File logCatFile = new File(getPathLog());
+			if (logCatFile.exists()) {
+				filePaths.add(getPathLog());
+			}
+
+			for (String files : filePaths) {
+				File fileIn = new File(files);
+				Uri u = Uri.fromFile(fileIn);
+				uris.add(u);
+			}
+
+			if (uris.size() > 0) {
+				Log.e(TAG, uris.size() + " ");
+				i.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
+			}
+			defaultBody.append(getIntent().getStringExtra(RESULT_EXTRA_TEXT));
+			try {
+				if (!isMonuallyMode) {
+					defaultBody
+						.append("\n")
+						.append(" Error: ")
+						.append(getIntent().getStringExtra(TRACE_INFO));
+				} else {
+					defaultBody
+					.append("\n")
+					.append("Note: Manually sending");
+				}
+				String extraText = defaultBody.toString();
+				i.putExtra(Intent.EXTRA_TEXT, extraText);
+				startActivity(Intent.createChooser(i, "Send report via:"));
+			} catch (ActivityNotFoundException ex) {
+				Log.e(TAG, "Error", ex);
+			}
+			if (!isMonuallyMode) {
+				finish();
+			}
+		}
+	}
+
 }
