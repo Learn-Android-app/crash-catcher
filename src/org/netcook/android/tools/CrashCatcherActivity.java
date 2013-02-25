@@ -4,17 +4,16 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Writer;
 import java.util.ArrayList;
 
+import org.netcook.android.security.Crypter;
 import org.netcook.android.sysinfo.SystemInfoBuilder;
 
 import roboguice.activity.RoboActivity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -35,17 +34,34 @@ import android.util.Log;
  */
 public class CrashCatcherActivity extends RoboActivity implements CrashCatchable {
 	private static final String TAG = "CrashCatcherActivity";
-	
-	private StringBuilder defaultBody = new StringBuilder("");
-	
-	private static final String DEFAULT_EMAIL_FROM = "example@example.com";
-	private static final String DEFAULT_SUBJECT = "Crash report";
 
-    public final static String STORAGE_DIRECTORY = Environment.getExternalStorageDirectory().toString();
+	private static final String DEFAULT_EMAIL_FROM = "example@example.com";
+	private static final String DEFAULT_CRASH_SUBJECT = "Crash report";
+	private static final String DEFAULT_SUBJECT = "Report";
+
+	private static final String DEFAULT_SALT = "werwjkfiwef02349oyr";
+	private static final String DEFAULT_INIT_VECTOR = "1234567890asdfgh";
+	private static final String DEFAULT_PASSWORD = "xegFLqN2m";
+
+	public final static String STORAGE_DIRECTORY = Environment.getExternalStorageDirectory().toString();
 	public final static String SETTINGS_DIR_PROJECT = STORAGE_DIRECTORY + "/.settings";
 	public final static String SETTINGS_DIR_LOG = STORAGE_DIRECTORY + "/.logcat";
 	public final static String PATH_TO_LOG = SETTINGS_DIR_LOG + "/logcat.txt";
 	public final static String PATH_TO_RESULT = SETTINGS_DIR_PROJECT + "/result.jpg";
+
+	private Crypter nCrypter;
+
+	public class CrashCatcherError extends Error {
+
+		public CrashCatcherError(String detailMessage) {
+			super(detailMessage);
+		}
+
+		public CrashCatcherError(Throwable throwable) {
+			super(throwable);
+		}
+		
+	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -68,6 +84,9 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 			//setContentView(R.layout.crash_activity);
 			new CrashSendTask().execute();
 		}
+		if (isEncryptContent()) {
+			nCrypter = new Crypter(getPassword(), getSalt(), getInitVector());
+		}
 		super.onCreate(savedInstanceState);
 	}
 
@@ -76,9 +95,10 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 		new CrashSendTask(true).execute();
 	}
 
-	private class CrashSendTask extends AsyncTask<Void, Void, Void> {
+	private class CrashSendTask extends AsyncTask<Void, Void, Boolean> {
 		private final boolean isMonuallyMode;
-	
+		private StringBuilder defaultBody = new StringBuilder("");
+
 		public CrashSendTask() {
 			this(false);
 		}
@@ -88,19 +108,25 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 		}
 
 		@Override
-		protected Void doInBackground(Void... params) {
-
-			captureLog();
-
-			return null;
+		protected Boolean doInBackground(Void... params) {
+			try {
+				captureLog();
+			} catch (CrashCatcherError e) {
+				defaultBody.append(e.getMessage());
+				return false;
+			}
+			return true;
 		}
 
 		@Override
-		protected void onPostExecute(Void result) {
+		protected void onPostExecute(Boolean success) {
+			if (isCancelled()) {
+				return;
+			}
 			Intent i = new Intent(android.content.Intent.ACTION_SEND_MULTIPLE);
 			i.setType("message/rfc822");
 			i.putExtra(Intent.EXTRA_EMAIL, new String[] { getRecipient() });
-			i.putExtra(Intent.EXTRA_SUBJECT, getFinalSubject());
+			i.putExtra(Intent.EXTRA_SUBJECT, getFinalSubject(isMonuallyMode));
 
 			ArrayList<Uri> uris = new ArrayList<Uri>();
 			ArrayList<String> filePaths = new ArrayList<String>();
@@ -137,8 +163,9 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 					.append("\n")
 					.append("Note: Manually sending");
 				}
-				i.putExtra(Intent.EXTRA_TEXT, defaultBody.toString());
-				startActivity(Intent.createChooser(i, "Send crash log..."));
+				String extraText = defaultBody.toString();
+				i.putExtra(Intent.EXTRA_TEXT, extraText);
+				startActivity(Intent.createChooser(i, "Send report via:"));
 			} catch (ActivityNotFoundException ex) {
 				Log.e(TAG, "Error", ex);
 			}
@@ -168,19 +195,11 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 			}
 			Log.d(TAG, (System.currentTimeMillis() - time) + "");
 			log.append(new SystemInfoBuilder().build());
-		} catch (IOException e) {
-			Log.d(TAG, "get logcat failed", e);
+		} catch (Exception e) {
+			throw new CrashCatcherError("Get logcat failed");
 		} finally {
-			if (reader != null) {
-				try { reader.close(); } catch (IOException e) {}
-			}
+			try { reader.close(); } catch (Exception e) {}
 		}
-		
-		if (getBaseContext().checkCallingOrSelfPermission("android.permission.READ_LOGS") 
-				!= PackageManager.PERMISSION_GRANTED) {
-			defaultBody.append("READ_LOGS access denied ");
-		}
-		
 		saveLogToFile(log);
 	}
 
@@ -192,23 +211,26 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 		Writer writer = null;
 		try {
 			writer = new BufferedWriter(new FileWriter(outputFile));
-			writer.write(builder.toString());
-			
-		} catch (IOException e) {
+			if (isEncryptContent()) {
+				writer.write(new String(nCrypter.encrypt(builder.toString())));
+			} else {
+				writer.write(builder.toString());
+			}
+
+		} catch (Exception e) {
 			Log.e(TAG, "saveLogToFile failed", e);
-			defaultBody.append("Error writing file on device");
-			
+			throw new CrashCatcherError("Error writing file on device");
 		} finally {
 			try { writer.close(); } catch (Exception e) { }
 		}
 	}
 
-	private String getFinalSubject() {
+	private String getFinalSubject(boolean isMonuallyMode) {
 		try {
 			String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-			return "[" + getSubject() + " v" + versionName + "] " + DEFAULT_SUBJECT;
+			return "[" + getPackageName() + " v" + versionName + "] " + (isMonuallyMode ? getSubject() : getCrashSubject()) + (isEncryptContent()?"(ENCRYPTED)":"");
 		} catch (Exception e) {
-			return "[" + getSubject() + " NO VERSION] " + DEFAULT_SUBJECT;
+			return "[" + getPackageName() + " NO VERSION] " + getSubject();
 		}
 	}
 
@@ -217,7 +239,11 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 	}
 
 	protected String getSubject() {
-		return getPackageName();
+		return DEFAULT_SUBJECT;
+	}
+
+	protected String getCrashSubject() {
+		return DEFAULT_CRASH_SUBJECT;
 	}
 
 	protected String getPathLog() {
@@ -230,6 +256,22 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 
 	protected String getRecipient() {
 		return DEFAULT_EMAIL_FROM;
+	}
+
+	protected String getSalt() {
+		return DEFAULT_SALT;
+	}
+
+	protected String getInitVector() {
+		return DEFAULT_INIT_VECTOR;
+	}
+
+	protected String getPassword() {
+		return DEFAULT_PASSWORD;
+	}
+
+	protected boolean isEncryptContent() {
+		return false;
 	}
 
 	protected Class<?> getStartActivityAfterCrached() {
