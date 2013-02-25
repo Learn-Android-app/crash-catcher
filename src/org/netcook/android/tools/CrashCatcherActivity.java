@@ -9,6 +9,7 @@ import java.io.Writer;
 import java.util.ArrayList;
 
 import org.netcook.android.security.Crypter;
+import org.netcook.android.security.Crypter.EncryptResponse;
 import org.netcook.android.sysinfo.SystemInfoBuilder;
 
 import roboguice.activity.RoboActivity;
@@ -40,7 +41,6 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 	private static final String DEFAULT_SUBJECT = "Report";
 
 	private static final String DEFAULT_SALT = "werwjkfiwef02349oyr";
-	private static final String DEFAULT_INIT_VECTOR = "1234567890asdfgh";
 	private static final String DEFAULT_PASSWORD = "xegFLqN2m";
 
 	public final static String STORAGE_DIRECTORY = Environment.getExternalStorageDirectory().toString();
@@ -84,7 +84,7 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 			new CrashSendTask().execute();
 		}
 		if (isEncryptContent()) {
-			nCrypter = new Crypter(getPassword(), getSalt(), getInitVector());
+			nCrypter = new Crypter(getPassword(), getSalt());
 		}
 		super.onCreate(savedInstanceState);
 	}
@@ -120,10 +120,6 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 
 	protected String getSalt() {
 		return DEFAULT_SALT;
-	}
-
-	protected String getInitVector() {
-		return DEFAULT_INIT_VECTOR;
 	}
 
 	protected String getPassword() {
@@ -175,7 +171,10 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 		try {
 			writer = new BufferedWriter(new FileWriter(outputFile));
 			if (isEncryptContent()) {
-				writer.write(new String(nCrypter.encrypt(builder.toString())));
+				EncryptResponse r = nCrypter.encrypt(builder.toString());
+				writer.write(r.encrypted);
+				writer.write("\n");
+				writer.write(r.iv);
 			} else {
 				writer.write(builder.toString());
 			}
@@ -221,7 +220,7 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 			try {
 				captureLog();
 			} catch (CrashCatcherError e) {
-				defaultBody.append(e.getMessage());
+				defaultBody.append(e.getMessage()).append("\n");
 				return false;
 			}
 			return true;
