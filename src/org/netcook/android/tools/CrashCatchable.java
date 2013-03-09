@@ -6,4 +6,5 @@ public interface CrashCatchable {
 	String RESULT_EXTRA_TEXT = "RESULT_EXTRA_TEXT";
 
 	void onSendLog();
+	void onReportReady();
 }

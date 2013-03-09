@@ -94,6 +94,11 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 		new CrashSendTask(true).execute();
 	}
 
+	@Override
+	public void onReportReady() {
+
+	}
+
 	protected String getPathResult() {
 		return PATH_TO_RESULT;
 	}
@@ -178,7 +183,7 @@ public class CrashCatcherActivity extends RoboActivity implements CrashCatchable
 			} else {
 				writer.write(builder.toString());
 			}
-
+			onReportReady();
 		} catch (Exception e) {
 			Log.e(TAG, "saveLogToFile failed", e);
 			throw new CrashCatcherError("Error writing file on device");

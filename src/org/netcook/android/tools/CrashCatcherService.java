@@ -41,4 +41,10 @@ public class CrashCatcherService extends Service implements CrashCatchable {
 	public void onSendLog() {
 		throw new RuntimeException("Not implemented yet");
 	}
+
+	@Override
+	public void onReportReady() {
+		throw new RuntimeException("Not implemented yet");
+	}
+	
 }
