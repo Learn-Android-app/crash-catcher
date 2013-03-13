@@ -12,6 +12,8 @@ import org.netcook.android.security.Crypter;
 import org.netcook.android.security.Crypter.EncryptResponse;
 import org.netcook.android.sysinfo.SystemInfoBuilder;
 
+import roboguice.activity.RoboActivity;
+
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
@@ -33,7 +35,7 @@ import android.util.Log;
  * @author Nikolay Moskvin <moskvin@netcook.org>
  * 
  */
-public class CrashCatcherActivity extends Activity implements CrashCatchable {
+public class CrashCatcherRoboActivity extends RoboActivity implements CrashCatchable {
 	private static final String TAG = "CrashCatcherActivity";
 
 	private static final String DEFAULT_EMAIL_FROM = "example@example.com";
@@ -71,7 +73,7 @@ public class CrashCatcherActivity extends Activity implements CrashCatchable {
 			public void uncaughtException(Thread paramThread, final Throwable e) {
 				final String stackTrace = StackTraceHelper.getStackTrace(e);
 				Log.e(TAG, "Error: " + stackTrace);
-				Intent crashedIntent = new Intent(CrashCatcherActivity.this, getStartActivityAfterCrached());
+				Intent crashedIntent = new Intent(CrashCatcherRoboActivity.this, getStartActivityAfterCrached());
 				crashedIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
 				crashedIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 				crashedIntent.putExtra(TRACE_INFO, stackTrace);
@@ -136,7 +138,7 @@ public class CrashCatcherActivity extends Activity implements CrashCatchable {
 	}
 
 	protected Class<?> getStartActivityAfterCrached() {
-		return CrashCatcherActivity.class;
+		return CrashCatcherRoboActivity.class;
 	}
 
 	private void captureLog() {
