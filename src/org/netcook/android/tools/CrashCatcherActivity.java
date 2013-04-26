@@ -43,11 +43,11 @@ public class CrashCatcherActivity extends Activity implements CrashCatchable {
 	private static final String DEFAULT_SALT = "werwjkfiwef02349oyr";
 	private static final String DEFAULT_PASSWORD = "xegFLqN2m";
 
-	public final static String STORAGE_DIRECTORY = Environment.getExternalStorageDirectory().toString();
-	public final static String SETTINGS_DIR_PROJECT = STORAGE_DIRECTORY + "/.settings";
-	public final static String SETTINGS_DIR_LOG = STORAGE_DIRECTORY + "/.logcat";
-	public final static String PATH_TO_LOG = SETTINGS_DIR_LOG + "/logcat.txt";
-	public final static String PATH_TO_RESULT = SETTINGS_DIR_PROJECT + "/result.jpg";
+	private final static String STORAGE_DIRECTORY = Environment.getExternalStorageDirectory().toString();
+	private final static String SETTINGS_DIR_PROJECT = STORAGE_DIRECTORY + "/.settings";
+	private final static String SETTINGS_DIR_LOG = STORAGE_DIRECTORY + "/.logcat";
+	private final static String PATH_TO_LOG = SETTINGS_DIR_LOG + "/logcat.txt";
+	private final static String PATH_TO_RESULT = SETTINGS_DIR_PROJECT + "/result.jpg";
 
 	private Crypter nCrypter;
 
@@ -101,6 +101,10 @@ public class CrashCatcherActivity extends Activity implements CrashCatchable {
 
 	protected String getPathResult() {
 		return PATH_TO_RESULT;
+	}
+	
+	protected String getAttachFileDir(){
+		return null;
 	}
 
 	protected String getSubject() {
@@ -253,6 +257,8 @@ public class CrashCatcherActivity extends Activity implements CrashCatchable {
 			if (logCatFile.exists()) {
 				filePaths.add(getPathLog());
 			}
+			
+			attachFiles(filePaths, getAttachFileDir());
 
 			for (String files : filePaths) {
 				File fileIn = new File(files);
@@ -284,6 +290,23 @@ public class CrashCatcherActivity extends Activity implements CrashCatchable {
 			}
 			if (!isMonuallyMode) {
 				finish();
+			}
+		}
+		
+		private void attachFiles(ArrayList<String> attachList, String dir){
+			Log.d(TAG,"attachFiles, dir: "+dir);
+			if(dir == null){
+				return;
+			}
+			File directory = new File(dir);
+			if(directory.exists()){
+				File[] files = directory.listFiles();
+				if(files != null){
+					for (File file : files) {
+						Log.d(TAG,"attachFiles, file: "+file.getPath());
+						attachList.add(file.getPath());
+					}
+				}
 			}
 		}
 	}
